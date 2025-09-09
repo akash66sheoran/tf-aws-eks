@@ -5,7 +5,3 @@ variable "cluster_name" {
 variable "kubernetes_version" {
   type = string
 }
-
-variable "eks_cluster_role" {
-  type = string
-}
