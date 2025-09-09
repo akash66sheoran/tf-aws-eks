@@ -7,7 +7,7 @@ resource "aws_vpc" "eks_vpc" {
   enable_dns_hostnames = true
 
   tags = {
-    Name = "${variable.cluster_name}-vpc"
+    Name = "${var.cluster_name}-vpc"
   }
 }
 
@@ -24,7 +24,7 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name                     = "${variable.cluster_name}-eks-public-${each.value}"
+    Name                     = "${var.cluster_name}-eks-public-${each.value}"
     "kubernetes.io/role/elb" = "1"
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
   }
@@ -43,7 +43,7 @@ resource "aws_subnet" "private" {
   map_public_ip_on_launch = false
 
   tags = {
-    Name                              = "${variable.cluster_name}-eks-private-${each.value}"
+    Name                              = "${var.cluster_name}-eks-private-${each.value}"
     "kubernetes.io/role/internal-elb" = "1"
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
   }
@@ -56,7 +56,7 @@ resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.eks_vpc.id
 
   tags = {
-    Name = "${variable.cluster_name}-igw"
+    Name = "${var.cluster_name}-igw"
   }
 }
 
@@ -72,7 +72,7 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    Name = "${variable.cluster_name}-public-rt"
+    Name = "${var.cluster_name}-public-rt"
   }
 }
 
@@ -87,7 +87,7 @@ resource "aws_route_table_association" "public" {
 #################################
 resource "aws_eip" "nat" {
   tags = {
-    Name = "${variable.cluster_name}-nat-eip"
+    Name = "${var.cluster_name}-nat-eip"
   }
 }
 
@@ -96,7 +96,7 @@ resource "aws_nat_gateway" "natgw" {
   subnet_id     = values(aws_subnet.public)[0].id
 
   tags = {
-    Name = "${variable.cluster_name}-natgw"
+    Name = "${var.cluster_name}-natgw"
   }
 }
 
@@ -112,7 +112,7 @@ resource "aws_route_table" "private" {
   }
 
   tags = {
-    Name = "${variable.cluster_name}-private-rt"
+    Name = "${var.cluster_name}-private-rt"
   }
 }
 

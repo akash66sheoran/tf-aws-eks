@@ -2,7 +2,7 @@
 # IAM Role for Node Group
 #################################
 resource "aws_iam_role" "eks_node_role" {
-  name = "${variable.cluster_name}-eks-node-role"
+  name = "${var.cluster_name}-eks-node-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -39,7 +39,7 @@ resource "aws_iam_role_policy_attachment" "AmazonEC2ContainerRegistryReadOnly" {
 #################################
 resource "aws_eks_node_group" "node_group" {
   cluster_name    = aws_eks_cluster.eks_cluster.name
-  node_group_name = "${variable.cluster_name}-nodegroup"
+  node_group_name = "${var.cluster_name}-nodegroup"
   node_role_arn   = aws_iam_role.eks_node_role.arn
   subnet_ids      = values(aws_subnet.private)[*].id # put nodes in private subnets
   instance_types  = ["t3.micro"]
