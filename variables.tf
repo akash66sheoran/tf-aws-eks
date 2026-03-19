@@ -5,3 +5,7 @@ variable "cluster_name" {
 variable "kubernetes_version" {
   type = string
 }
+
+variable "aws_region" {
+  type = string
+}
