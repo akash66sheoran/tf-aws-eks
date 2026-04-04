@@ -3,6 +3,11 @@ trigger: none
 pool:
   vmImage: ubuntu-latest
 
+parameters:
+  - name: cluster_name
+    type: string
+    default: ""
+
 stages:
   - stage: terraformCreate
     displayName: Provision EKS cluster
@@ -24,7 +29,7 @@ stages:
               AWS_DEFAULT_REGION: $(AWS_DEFAULT_REGION)
 
           - script: |
-              terraform plan --var-file=variables.tfvars
+              terraform plan --var-file=variables.tfvars -var="cluster_name=${{ parameters.cluster_name }}"
             displayName: terraform plan
             env:
               AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
@@ -32,7 +37,7 @@ stages:
               AWS_DEFAULT_REGION: $(AWS_DEFAULT_REGION)
 
           - script: |
-              terraform apply --var-file=variables.tfvars --auto-approve
+              terraform apply --var-file=variables.tfvars -var="cluster_name=${{ parameters.cluster_name }}" --auto-approve
             displayName: terraform apply
             env:
               AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
@@ -59,7 +64,7 @@ stages:
               AWS_DEFAULT_REGION: $(AWS_DEFAULT_REGION)
 
           - script: |
-              terraform destroy --var-file=variables.tfvars --auto-approve
+              terraform destroy --var-file=variables.tfvars -var="cluster_name=${{ parameters.cluster_name }}" --auto-approve
             displayName: terraform destroy
             env:
               AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
