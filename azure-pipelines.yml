@@ -4,69 +4,124 @@ pool:
   vmImage: ubuntu-latest
 
 parameters:
-  - name: cluster_name
+  - name: environment
     type: string
-    default: ""
+    default: dev
+    values:
+      - dev
+      - stage
+      - prod
+
+  - name: action
+    type: string
+    default: plan
+    values:
+      - plan
+      - apply
+      - destroy
+
+variables:
+  - name: terraformVersion
+    value: '1.14.9'
+
+  - ${{ if eq(parameters.environment, 'dev') }}:
+      - group: aws-dev
+
+  - ${{ if eq(parameters.environment, 'stage') }}:
+      - group: aws-stage
+
+  - ${{ if eq(parameters.environment, 'prod') }}:
+      - group: aws-prod
 
 stages:
-  - stage: terraformCreate
-    displayName: Provision EKS cluster
+  - stage: TerraformPlan
     jobs:
-      - job: Terraform
+      - job: Plan
         steps:
           - checkout: self
 
           - task: TerraformInstaller@1
             inputs:
-              terraformVersion: 'latest'
+              terraformVersion: $(terraformVersion)
 
-          - script: |
+          - bash: |
+              set -euo pipefail
+
+              cd envs/${{ parameters.environment }}
+
+              terraform fmt -check -recursive
               terraform init
-            displayName: terraform init
+              terraform validate
+
+              terraform plan \
+                -var-file="terraform.tfvars" \
+                -out=tfplan
             env:
               AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
               AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
               AWS_DEFAULT_REGION: $(AWS_DEFAULT_REGION)
 
-          - script: |
-              terraform plan --var-file=variables.tfvars -var="cluster_name=${{ parameters.cluster_name }}"
-            displayName: terraform plan
-            env:
-              AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-              AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
-              AWS_DEFAULT_REGION: $(AWS_DEFAULT_REGION)
+          - publish: envs/${{ parameters.environment }}/tfplan
+            artifact: terraform-plan
+            condition: ne('${{ parameters.action }}', 'destroy')
 
-          - script: |
-              terraform apply --var-file=variables.tfvars -var="cluster_name=${{ parameters.cluster_name }}" --auto-approve
-            displayName: terraform apply
-            env:
-              AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-              AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
-              AWS_DEFAULT_REGION: $(AWS_DEFAULT_REGION)
-
-  - stage: terraformDestroy
-    displayName: Destroy EKS cluster
+  - stage: TerraformApply
+    dependsOn: TerraformPlan
+    condition: and(succeeded(), eq('${{ parameters.action }}', 'apply'))
     jobs:
-      - job: Terraform
-        steps:
-          - checkout: self
+      - deployment: Apply
+        environment: eks-${{ parameters.environment }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
 
-          - task: TerraformInstaller@1
-            inputs:
-              terraformVersion: 'latest'
+                - download: current
+                  artifact: terraform-plan
 
-          - script: |
-              terraform init
-            displayName: terraform init
-            env:
-              AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-              AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
-              AWS_DEFAULT_REGION: $(AWS_DEFAULT_REGION)
+                - task: TerraformInstaller@1
+                  inputs:
+                    terraformVersion: $(terraformVersion)
 
-          - script: |
-              terraform destroy --var-file=variables.tfvars -var="cluster_name=${{ parameters.cluster_name }}" --auto-approve
-            displayName: terraform destroy
-            env:
-              AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-              AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
-              AWS_DEFAULT_REGION: $(AWS_DEFAULT_REGION)
+                - bash: |
+                    set -euo pipefail
+
+                    cd envs/${{ parameters.environment }}
+
+                    terraform init
+                    terraform apply -auto-approve "$(Pipeline.Workspace)/terraform-plan/tfplan"
+                  env:
+                    AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
+                    AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+                    AWS_DEFAULT_REGION: $(AWS_DEFAULT_REGION)
+
+  - stage: TerraformDestroy
+    condition: eq('${{ parameters.action }}', 'destroy')
+    jobs:
+      - deployment: Destroy
+        environment: eks-${{ parameters.environment }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: TerraformInstaller@1
+                  inputs:
+                    terraformVersion: $(terraformVersion)
+
+                - bash: |
+                    set -euo pipefail
+
+                    cd envs/${{ parameters.environment }}
+
+                    terraform init
+
+                    terraform destroy \
+                      -var-file="terraform.tfvars" \
+                      -auto-approve
+                  env:
+                    AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
+                    AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+                    AWS_DEFAULT_REGION: $(AWS_DEFAULT_REGION)
