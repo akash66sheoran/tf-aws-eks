@@ -6,6 +6,7 @@ pool:
 
 parameters:
   - name: environment
+    displayName: Environment
     type: string
     default: dev
     values:
@@ -14,6 +15,7 @@ parameters:
       - prod
 
   - name: action
+    displayName: Terraform Action
     type: string
     default: plan
     values:
@@ -25,19 +27,27 @@ variables:
   - name: terraformVersion
     value: '1.14.9'
 
+  - name: awsRegion
+    value: 'ap-south-1'
+
   - ${{ if eq(parameters.environment, 'dev') }}:
-      - group: aws-dev
+      - name: awsServiceConnection
+        value: 'aws-eks-dev-svc'
 
   - ${{ if eq(parameters.environment, 'stage') }}:
-      - group: aws-stage
+      - name: awsServiceConnection
+        value: 'aws-eks-stage-svc'
 
   - ${{ if eq(parameters.environment, 'prod') }}:
-      - group: aws-prod
+      - name: awsServiceConnection
+        value: 'aws-eks-prod-svc'
 
 stages:
   - stage: TerraformPlan
+    displayName: Terraform Plan
     jobs:
       - job: Plan
+        displayName: Plan ${{ parameters.environment }}
         steps:
           - checkout: self
 
@@ -45,32 +55,40 @@ stages:
             inputs:
               terraformVersion: $(terraformVersion)
 
-          - bash: |
-              set -euo pipefail
+          - task: AWSShellScript@1
+            displayName: Terraform fmt, init, validate, plan
+            inputs:
+              awsCredentials: $(awsServiceConnection)
+              regionName: $(awsRegion)
+              scriptType: bash
+              script: |
+                set -euo pipefail
 
-              cd envs/${{ parameters.environment }}
+                echo "Running Terraform for environment: ${{ parameters.environment }}"
+                aws sts get-caller-identity
 
-              terraform fmt -check -recursive
-              terraform init
-              terraform validate
+                cd envs/${{ parameters.environment }}
 
-              terraform plan \
-                -var-file="terraform.tfvars" \
-                -out=tfplan
-            env:
-              AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-              AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
-              AWS_DEFAULT_REGION: $(AWS_DEFAULT_REGION)
+                terraform fmt -check -recursive
+                terraform init
+                terraform validate
+
+                terraform plan \
+                  -var-file="terraform.tfvars" \
+                  -out=tfplan
 
           - publish: envs/${{ parameters.environment }}/tfplan
             artifact: terraform-plan
+            displayName: Publish Terraform plan
             condition: ne('${{ parameters.action }}', 'destroy')
 
   - stage: TerraformApply
+    displayName: Terraform Apply
     dependsOn: TerraformPlan
     condition: and(succeeded(), eq('${{ parameters.action }}', 'apply'))
     jobs:
       - deployment: Apply
+        displayName: Apply ${{ parameters.environment }}
         environment: eks-${{ parameters.environment }}
         strategy:
           runOnce:
@@ -85,22 +103,29 @@ stages:
                   inputs:
                     terraformVersion: $(terraformVersion)
 
-                - bash: |
-                    set -euo pipefail
+                - task: AWSShellScript@1
+                  displayName: Terraform apply
+                  inputs:
+                    awsCredentials: $(awsServiceConnection)
+                    regionName: $(awsRegion)
+                    scriptType: bash
+                    script: |
+                      set -euo pipefail
 
-                    cd envs/${{ parameters.environment }}
+                      aws sts get-caller-identity
 
-                    terraform init
-                    terraform apply -auto-approve "$(Pipeline.Workspace)/terraform-plan/tfplan"
-                  env:
-                    AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-                    AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
-                    AWS_DEFAULT_REGION: $(AWS_DEFAULT_REGION)
+                      cd envs/${{ parameters.environment }}
+
+                      terraform init
+
+                      terraform apply -auto-approve "$(Pipeline.Workspace)/terraform-plan/tfplan"
 
   - stage: TerraformDestroy
+    displayName: Terraform Destroy
     condition: eq('${{ parameters.action }}', 'destroy')
     jobs:
       - deployment: Destroy
+        displayName: Destroy ${{ parameters.environment }}
         environment: eks-${{ parameters.environment }}
         strategy:
           runOnce:
@@ -112,17 +137,21 @@ stages:
                   inputs:
                     terraformVersion: $(terraformVersion)
 
-                - bash: |
-                    set -euo pipefail
+                - task: AWSShellScript@1
+                  displayName: Terraform destroy
+                  inputs:
+                    awsCredentials: $(awsServiceConnection)
+                    regionName: $(awsRegion)
+                    scriptType: bash
+                    script: |
+                      set -euo pipefail
 
-                    cd envs/${{ parameters.environment }}
+                      aws sts get-caller-identity
 
-                    terraform init
+                      cd envs/${{ parameters.environment }}
 
-                    terraform destroy \
-                      -var-file="terraform.tfvars" \
-                      -auto-approve
-                  env:
-                    AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-                    AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
-                    AWS_DEFAULT_REGION: $(AWS_DEFAULT_REGION)
+                      terraform init
+
+                      terraform destroy \
+                        -var-file="terraform.tfvars" \
+                        -auto-approve
