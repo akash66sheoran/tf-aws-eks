@@ -64,18 +64,34 @@ stages:
               script: |
                 set -euo pipefail
 
-                echo "Running Terraform for environment: ${{ parameters.environment }}"
+                echo "✅ AWS identity:"
                 aws sts get-caller-identity
 
-                cd envs/${{ parameters.environment }}
+                echo "📁 Current directory:"
+                pwd
+                ls -la
 
+                echo "📁 Moving to env directory..."
+                cd envs/${{ parameters.environment }}
+                pwd
+                ls -la
+
+                echo "🔍 Terraform fmt..."
                 terraform fmt -check -recursive
-                terraform init
+
+                echo "🚀 Terraform init..."
+                terraform init -input=false
+
+                echo "✅ Terraform validate..."
                 terraform validate
 
+                echo "📋 Terraform plan..."
                 terraform plan \
+                  -input=false \
                   -var-file="terraform.tfvars" \
                   -out=tfplan
+
+                echo "✅ Plan completed"
 
           - publish: envs/${{ parameters.environment }}/tfplan
             artifact: terraform-plan
