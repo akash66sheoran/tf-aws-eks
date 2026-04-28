@@ -64,9 +64,6 @@ stages:
               script: |
                 set -euo pipefail
 
-                echo "✅ AWS identity:"
-                aws sts get-caller-identity
-
                 echo "📁 Current directory:"
                 pwd
                 ls -la
