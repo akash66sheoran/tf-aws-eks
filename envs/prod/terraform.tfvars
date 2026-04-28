@@ -8,22 +8,17 @@ clusters = {
     vpc_cidr     = "10.40.0.0/16"
     az_count     = 3
 
-    # access_entries = {
-    #   cicd_admin = {
-    #     principal_arn = "arn:aws:iam::111111111111:role/azure-devops-terraform"
-    #     policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-    #   }
+    access_entries = {
+      cicd_admin = {
+        principal_arn = "arn:aws:iam::259974370560:role/ado-cicd-tf-eks-prod-role"
+        policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+      }
 
-    #   akash_admin = {
-    #     principal_arn = "arn:aws:iam::111111111111:user/akash"
-    #     policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-    #   }
-
-    #   dev_readonly = {
-    #     principal_arn = "arn:aws:iam::111111111111:role/dev-readonly"
-    #     policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"
-    #   }
-    # }
+      akash_admin = {
+        principal_arn = "arn:aws:iam::259974370560:user/Akash"
+        policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+      }
+    }
 
     cluster_addons = {
       vpc-cni    = {}
@@ -55,12 +50,12 @@ clusters = {
 
     access_entries = {
       cicd_admin = {
-        principal_arn = "arn:aws:iam::111111111111:role/azure-devops-terraform"
+        principal_arn = "arn:aws:iam::259974370560:role/ado-cicd-tf-eks-prod-role"
         policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
       }
 
-      payments_admin = {
-        principal_arn = "arn:aws:iam::111111111111:role/payments-admin"
+      akash_admin = {
+        principal_arn = "arn:aws:iam::259974370560:user/Akash"
         policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
       }
     }
