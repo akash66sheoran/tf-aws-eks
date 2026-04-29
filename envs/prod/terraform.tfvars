@@ -68,13 +68,13 @@ clusters = {
 
     node_groups = {
       backend = {
-        instance_types  = ["t3.xlarge"]
+        instance_types  = ["t3.micro"]
         capacity_type   = "ON_DEMAND"
         ami_type        = "AL2023_x86_64_STANDARD"
         disk_size       = 50
-        desired_size    = 3
-        min_size        = 2
-        max_size        = 5
+        desired_size    = 1
+        min_size        = 1
+        max_size        = 2
         max_unavailable = 1
         labels = {
           workload = "backend"
