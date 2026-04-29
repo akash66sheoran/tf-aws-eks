@@ -1,5 +1,5 @@
 module "eks_clusters" {
-  source = "../../modules/eks-cluster"
+  source = "../../modules"
 
   for_each = var.clusters
 
