@@ -56,14 +56,13 @@ stages:
               terraformVersion: $(terraformVersion)
 
           - task: AWSShellScript@1
-            displayName: Terraform fmt, init, validate, plan
             inputs:
-              awsCredentials: $(awsServiceConnection)
-              regionName: $(awsRegion)
-              scriptType: bash
-              script: |
+              awsCredentials: 'aws-eks-prod-svc'
+              regionName: 'ap-south-1'
+              scriptType: 'inline'
+              inlineScript: |
                 set -euo pipefail
-
+                
                 echo "📁 Current directory:"
                 pwd
                 ls -la
