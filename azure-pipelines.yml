@@ -57,8 +57,8 @@ stages:
 
           - task: AWSShellScript@1
             inputs:
-              awsCredentials: 'aws-eks-prod-svc'
-              regionName: 'ap-south-1'
+              awsCredentials: $(awsServiceConnection)
+              regionName: $(awsRegion)
               scriptType: 'inline'
               inlineScript: |
                 set -euo pipefail
