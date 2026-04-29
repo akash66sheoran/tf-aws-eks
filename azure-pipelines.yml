@@ -56,6 +56,7 @@ stages:
               terraformVersion: $(terraformVersion)
 
           - task: AWSShellScript@1
+            displayName: Terraform fmt, init, validate, plan
             inputs:
               awsCredentials: $(awsServiceConnection)
               regionName: $(awsRegion)
@@ -63,31 +64,18 @@ stages:
               inlineScript: |
                 set -euo pipefail
                 
-                echo "📁 Current directory:"
-                pwd
-                ls -la
-
-                echo "📁 Moving to env directory..."
                 cd envs/${{ parameters.environment }}
-                pwd
-                ls -la
 
-                echo "🔍 Terraform fmt..."
                 terraform fmt -check -recursive
 
-                echo "🚀 Terraform init..."
                 terraform init -input=false
 
-                echo "✅ Terraform validate..."
                 terraform validate
 
-                echo "📋 Terraform plan..."
                 terraform plan \
                   -input=false \
                   -var-file="terraform.tfvars" \
                   -out=tfplan
-
-                echo "✅ Plan completed"
 
           - publish: envs/${{ parameters.environment }}/tfplan
             artifact: terraform-plan
@@ -116,12 +104,12 @@ stages:
                     terraformVersion: $(terraformVersion)
 
                 - task: AWSShellScript@1
-                  displayName: Terraform apply
+                  displayName: Terraform Apply
                   inputs:
                     awsCredentials: $(awsServiceConnection)
                     regionName: $(awsRegion)
-                    scriptType: bash
-                    script: |
+                    scriptType: 'inline'
+                    inlineScript: |
                       set -euo pipefail
 
                       aws sts get-caller-identity
@@ -154,8 +142,8 @@ stages:
                   inputs:
                     awsCredentials: $(awsServiceConnection)
                     regionName: $(awsRegion)
-                    scriptType: bash
-                    script: |
+                    scriptType: 'inline'
+                    inlineScript: |
                       set -euo pipefail
 
                       aws sts get-caller-identity
