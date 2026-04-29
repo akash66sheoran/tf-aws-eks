@@ -1,5 +1,5 @@
 module "eks_clusters" {
-  source = "../../modules"
+  source = "../../module"
 
   for_each = var.clusters
 
@@ -17,7 +17,6 @@ module "eks_clusters" {
   })
 
   environment = var.environment
-  project     = var.project
 
   tags = {
     Environment = var.environment
