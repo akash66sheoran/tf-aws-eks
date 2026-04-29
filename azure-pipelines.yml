@@ -30,6 +30,9 @@ variables:
   - name: awsRegion
     value: 'ap-south-1'
 
+  - name: aws.rolecredential.maxduration
+    value: '3600'
+
   - ${{ if eq(parameters.environment, 'dev') }}:
       - name: awsServiceConnection
         value: 'aws-eks-dev-svc'
